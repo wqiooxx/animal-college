@@ -1,0 +1,205 @@
+<html>
+
+<head>
+	<meta charset="UTF-8">
+	<title>動物園大學</title>
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<!-- <meta name="viewport" content="initial-scale=1, maximum-scale=1, user-scalable=no, width=device-width, shrink-to-fit=yes"> -->
+	<link rel="icon" href="multicore_logo.ico" sizes="32x32">
+	<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+	<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+	<link rel="stylesheet" type="text/css" href="style.css">
+</head>
+
+<body>
+	<h2 id="titlex" style="width:100%; padding:10px; text-align: center; display:none">動物園大學</h2>
+	<div id="cam" style="width:100%; height:100%; padding-top:100px; text-align: center">
+		<button id="img_bkg" style="width:80%; font-size:32px" onclick="init()">動物園大學<br>ENTER</button>
+	</div>
+
+	<div id="webcam-container" style="width:100%; text-align: center;"></div>
+	<div id="label-container" style="width:100%; text-align: center;"></div>
+
+	<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+	<script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
+	<script type="text/javascript">
+		// More API functions here:
+		// https://github.com/googlecreativelab/teachablemachine-community/tree/master/libraries/image
+		// the link to your model provided by Teachable Machine export panel
+
+		let model_no = "CUuBBWMcg";
+		const URL = "https://teachablemachine.withgoogle.com/models/" + model_no + "/";
+
+		let model, webcam, labelContainer, maxPredictions;
+
+		// Load the image model and setup the webcam
+		async function init() {
+			const modelURL = URL + "model.json";
+			const metadataURL = URL + "metadata.json";
+
+			// load the model and metadata
+			// Refer to tmImage.loadFromFiles() in the API to support files from a file picker
+			// or files from your local hard drive
+			// Note: the pose library adds "tmImage" object to your window (window.tmImage)
+
+			model = await tmImage.load(modelURL, metadataURL);
+			maxPredictions = model.getTotalClasses();
+
+			//console.log("maxPredictions: " + maxPredictions);
+
+			let camW = window.innerWidth;
+			if (camW > 400) {
+				camW = 400;
+			}
+
+			// Convenience function to setup a webcam
+			const flip = false; // whether to flip the webcam
+			webcam = new tmImage.Webcam(camW, camW, flip); // width, height, flip
+			//webcam = new tmImage.Webcam(300, 300, flip); // width, height, flip
+			//await webcam.setup(); // request access to the webcam
+			//await webcam.setup({facingMode: "user"});
+			await webcam.setup({ facingMode: "environment" });
+			await webcam.play();
+			window.requestAnimationFrame(loop);
+
+			// append elements to the DOM
+			document.getElementById("webcam-container").appendChild(webcam.canvas);
+			labelContainer = document.getElementById("label-container");
+			for (let i = 0; i < maxPredictions; i++) { // and class labels
+				labelContainer.appendChild(document.createElement("div"));
+			}
+
+			$("#titlex").show();
+			$("#cam").hide();
+		}
+
+		async function loop() {
+			webcam.update(); // update the webcam frame
+			await predict();
+			window.requestAnimationFrame(loop);
+		}
+
+		let st = 0;
+		let aid = 0;
+		let bid = 0;
+		let cid = 0;
+		let prediction;
+		// run the webcam image through the image model
+		async function predict() {
+			// predict can take in an image, video or canvas html element
+			prediction = await model.predict(webcam.canvas);
+
+			//maxPredictions = prediction.length;
+			//console.log(maxPredictions);
+			//console.log(prediction);
+
+			if (st == 0) {
+				checkx();
+			}
+		}
+
+
+		function checkx() {
+			let sid = "";
+			let cv = 0;
+			let fname = "";
+			let kid = 0;
+
+			for (let i = 0; i < maxPredictions; i++) {
+
+				let t1 = prediction[i].className;
+				let t2 = prediction[i].probability.toFixed(2);
+				const classPrediction = t1 + ": " + t2;
+
+				//-------------------------
+				if (prediction[i].probability > 0.999) {
+					labelContainer.childNodes[i].innerHTML = "<h5>" + classPrediction + "</h5>";
+
+					if (t1 == "A") {
+						aid++;
+					} else if (t1 == "B") {
+						bid++;
+					} else if (t1 == "C") {
+						cid++;
+					}
+
+				} else {
+					labelContainer.childNodes[i].innerHTML = "";
+				}
+
+			}
+
+			//console.log(st + ": " + aid + "," + bid + "," + cid + "," + xid);
+
+			if (aid > 3) {
+				st = 1;
+				sid = "A";
+				kid = Math.ceil(Math.random() * 5);
+				fname = "./assets/A" + kid + ".jpg";
+				console.log(sid + "_" + kid);
+				aid = 0;
+
+
+				$("#img1").attr("src", fname);
+				$("#frm").show();
+				$("#b1").show();
+				$("#frm").fadeIn("slow");
+
+
+			} else if (bid > 3) {
+				st = 1;
+				sid = "B";
+				kid = Math.ceil(Math.random() * 5);
+				fname = "./assets/B" + kid + ".jpg";
+				console.log(sid + "_" + kid);
+				bid = 0;
+
+				$("#img1").attr("src", fname);
+				$("#frm").show();
+				$("#b1").show();
+				$("#frm").fadeIn("slow");
+
+			} else if (cid > 3) {
+				st = 1;
+				sid = "C";
+				kid = Math.ceil(Math.random() * 5);
+				fname = "./assets/C" + kid + ".jpg";
+				console.log(sid + "_" + kid);
+				cid = 0;
+
+				$("#img1").attr("src", fname);
+				$("#frm").show();
+				$("#b1").show();
+				$("#frm").fadeIn("slow");
+
+			}
+
+		}
+
+		function startx() {
+			st = 0;
+			$("#frm").hide();
+			$("#frm").attr("src", "");
+			$("#b1").hide();
+
+			// setTimeout( () => { 
+			// 	st = 0; 
+			// } , "3000");
+		}
+
+		// document.addEventListener('touchstart', (event) => {
+		// 	if (event.touches && event.touches.length > 1) {  // 禁止多指觸控
+		// 		event.preventDefault();
+		// 	}
+		// }, { passive: false });
+
+	</script>
+	<div id="frm" style="display:none; width:100vw; height:100vh; position:fixed; left:0px; top:0px;">
+		<img id="img1" src="" style="width:100%; height:auto" />
+	</div>
+	<button type="button" class="btn btn-info" id="b1" onclick="startx()"
+		style="position:absolute; top:0px; right:0px; margin:10px; background-color: black; color:white; display:none">X</button>
+</body>
+
+</html>
